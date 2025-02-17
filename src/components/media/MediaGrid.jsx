@@ -1,37 +1,57 @@
-import { useEffect, useState } from 'react';
-import { 
-  Card, 
-  CardMedia, 
-  CardActions, 
-  CardContent, 
-  IconButton, 
-  Box,
-  CircularProgress,
-  Typography,
-  Tooltip
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import ImageIcon from '@mui/icons-material/Image';
-import VideoFileIcon from '@mui/icons-material/VideoFile';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMedia, deleteMedia } from '../../redux/mediaSlice';
+import { Trash2, Image as ImageIcon, Play } from 'lucide-react';
 import MediaViewer from './MediaViewer';
+import LoadingSpinner from '../layout/LoadingSpinner';
+
+const VideoThumbnail = ({ videoUrl }) => {
+  const videoRef = useRef(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = 1;
+      videoRef.current.addEventListener('loadeddata', function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
+        setThumbnailUrl(canvas.toDataURL('image/jpeg'));
+      });
+    }
+  }, [videoUrl]);
+
+  return (
+    <>
+      <video 
+        ref={videoRef} 
+        src={videoUrl} 
+        className="hidden"
+        preload="metadata"
+      />
+      {thumbnailUrl && (
+        <img
+          src={thumbnailUrl}
+          alt="Video thumbnail"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
+    </>
+  );
+};
+
 const MediaGrid = () => {
   const dispatch = useDispatch();
   const { items, loading, error, filter } = useSelector(state => state.media);
-  const { user } = useSelector(state => state.auth);
   const [selectedMedia, setSelectedMedia] = useState(null);
 
   useEffect(() => {
-    console.log('Current user:', user);
     dispatch(fetchMedia({ page: 1, limit: 10, type: filter }));
   }, [dispatch, filter]);
 
-  useEffect(() => {
-    console.log('Media items:', items);
-  }, [items]);
-
-  const handleDelete = async (id) => {
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
     try {
       await dispatch(deleteMedia(id)).unwrap();
     } catch (err) {
@@ -39,147 +59,90 @@ const MediaGrid = () => {
     }
   };
 
-  const handleMediaClick = (media) => {
-    console.log("Media clicked:", media);
-    setSelectedMedia(media);
-  };
-
-  const handleCloseViewer = () => {
-    setSelectedMedia(null);
-  };
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <LoadingSpinner />;
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <Typography color="error">{error}</Typography>
-      </Box>
+      <div className="flex justify-center mt-8">
+        <p className="text-red-600">{error}</p>
+      </div>
     );
   }
 
   if (items.length === 0) {
     return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <Typography>No media files found</Typography>
-      </Box>
+      <div className="flex justify-center mt-8">
+        <p className="text-gray-500">No media files found</p>
+      </div>
     );
   }
 
   return (
     <>
-    <Box 
-      sx={{ 
-        display: 'grid',
-        gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)'
-        },
-        gap: 3,
-        padding: 2
-      }}
-    >
-      {items.map((item) => (
-        <Card 
-          key={item._id}
-          onClick={() => handleMediaClick(item)}
-          sx={{ 
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: 4,
-            }
-          }}
-        >
-          <Box onClick={() => handleMediaClick(item)} sx={{ position: 'relative', paddingTop: '75%' }}>
-            {item.type === 'image' ? (
-              <CardMedia
-                component="img"
-                image={item.url}
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-              />
-            ) : (
-              <CardMedia
-                component="video"
-                src={item.url}
-                controls
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-              />
-            )}
-          </Box>
-          <CardContent sx={{ flexGrow: 1, p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {item.type === 'image' ? 
-                <ImageIcon color="primary" /> : 
-                <VideoFileIcon color="secondary" />
-              }
-              <Typography variant="body2" color="text.secondary">
-                {new Date(item.createdAt).toLocaleDateString()}
-              </Typography>
-            </Box>
-          </CardContent>
-          <CardActions  sx={{ 
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                background: 'rgba(0, 0, 0, 0.5)',
-                borderRadius: '8px 0 0 0'
-            }} 
-            onClick={(e) => e.stopPropagation()} 
-            >
-            <Tooltip title="Delete">
-              <IconButton 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(item._id);
-                  }}
-                color="error"
-                size="small"
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'rgba(211, 47, 47, 0.04)'
-                  }
-                }}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
-          </CardActions>
-        </Card>
-      ))}
-    </Box>
-      <MediaViewer
-      open={Boolean(selectedMedia)}
-      onClose={() => {
-        console.log("Closing viewer"); // Add this log
-        setSelectedMedia(null);
-      }}
-      media={selectedMedia}
-    />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-4">
+        {items.map((item) => (
+          <div
+            key={item._id}
+            onClick={() => setSelectedMedia(item)}
+            className="group relative bg-white rounded-lg shadow-md overflow-hidden cursor-pointer 
+                     transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+          >
+            <div className="relative pt-[75%] bg-gray-100">
+              {item.type === 'image' ? (
+                <img
+                  src={item.url}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0">
+                  <VideoThumbnail videoUrl={item.url} />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center
+                                  group-hover:bg-indigo-600 transition-colors duration-200">
+                      <Play className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete Button Overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200">
+                <button
+                  onClick={(e) => handleDelete(e, item._id)}
+                  className="absolute bottom-2 right-2 p-2 rounded-full bg-red-500 text-white 
+                           opacity-0 group-hover:opacity-100 transition-opacity duration-200
+                           hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4">
+              <div className="flex items-center space-x-2 text-gray-600">
+                {item.type === 'image' ? (
+                  <ImageIcon className="h-4 w-4 text-indigo-500" />
+                ) : (
+                  <Play className="h-4 w-4 text-indigo-500" />
+                )}
+                <span className="text-sm">
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {selectedMedia && (
+        <MediaViewer
+          open={Boolean(selectedMedia)}
+          onClose={() => setSelectedMedia(null)}
+          media={selectedMedia}
+        />
+      )}
     </>
   );
 };

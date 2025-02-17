@@ -1,12 +1,7 @@
-import { useSnackbar } from 'notistack';
+import { useNotification } from '../context/NotificationContext';
 
 const useSnackbarHook = () => {
-  const { enqueueSnackbar } = useSnackbar();
-
-  const showNotification = (message, variant = 'default') => {
-    enqueueSnackbar(message, { variant });
-  };
-
+  const { showNotification } = useNotification();
   return { showNotification };
 };
 

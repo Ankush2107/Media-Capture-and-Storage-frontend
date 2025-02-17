@@ -1,9 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { createTheme } from '@mui/material/styles';
 import store from './redux/store';
-import { SnackbarProvider } from 'notistack';
+import { NotificationProvider } from './context/NotificationContext';
+
 // Components
 import Navbar from './components/layout/Navbar';
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -11,41 +10,30 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 
-// Create theme
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
-
 function App() {
   return (
     <Provider store={store}>
-      <ThemeProvider theme={theme}>
-      <SnackbarProvider maxSnack={3}>
-        <CssBaseline />
+      <NotificationProvider>
         <Router>
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/auth" element={<Auth />} />
-            
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
+          {/* Apply global styles */}
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <main className="min-h-[calc(100vh-4rem)]"> {/* Adjust based on navbar height */}
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/auth" element={<Auth />} />
+                
+                {/* Protected Routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+          </div>
         </Router>
-        </SnackbarProvider>
-      </ThemeProvider>
+      </NotificationProvider>
     </Provider>
   );
 }
