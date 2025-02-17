@@ -10,37 +10,30 @@ const VideoThumbnail = ({ videoUrl }) => {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.crossOrigin = "anonymous"; 
-      videoRef.current.currentTime = 1;
+    const currentRef = videoRef.current;
+    const handleLoad = () => {/*...*/};
   
-      const handleLoad = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-          setThumbnailUrl(canvas.toDataURL('image/jpeg'));
-        } catch (error) {
-          console.error('Thumbnail generation failed:', error);
-          setThumbnailUrl('/placeholder.jpg'); // Fallback image
-        }
-      };
-  
-      videoRef.current.addEventListener('loadeddata', handleLoad);
-      return () => videoRef.current.removeEventListener('loadeddata', handleLoad);
+    if (currentRef) {
+      currentRef.addEventListener('loadeddata', handleLoad);
     }
+  
+    return () => {
+      if (currentRef) {
+        currentRef.removeEventListener('loadeddata', handleLoad);
+      }
+    };
   }, [videoUrl]);
 
   return (
     <>
-      <video 
-        ref={videoRef} 
-        src={videoUrl} 
-        crossOrigin="anonymous" 
+     <video 
+        ref={videoRef}  // Add ref here
+        crossOrigin="anonymous"
         className="hidden"
         preload="metadata"
-      />
+      >
+        <source src={videoUrl} type="video/mp4" /> {/* Fixed variable name */}
+      </video>
       {thumbnailUrl && (
         <img
           src={thumbnailUrl}
