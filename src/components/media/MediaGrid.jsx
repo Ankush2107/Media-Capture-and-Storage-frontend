@@ -11,14 +11,24 @@ const VideoThumbnail = ({ videoUrl }) => {
 
   useEffect(() => {
     if (videoRef.current) {
+      videoRef.current.crossOrigin = "anonymous"; 
       videoRef.current.currentTime = 1;
-      videoRef.current.addEventListener('loadeddata', function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-        setThumbnailUrl(canvas.toDataURL('image/jpeg'));
-      });
+  
+      const handleLoad = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
+          setThumbnailUrl(canvas.toDataURL('image/jpeg'));
+        } catch (error) {
+          console.error('Thumbnail generation failed:', error);
+          setThumbnailUrl('/placeholder.jpg'); // Fallback image
+        }
+      };
+  
+      videoRef.current.addEventListener('loadeddata', handleLoad);
+      return () => videoRef.current.removeEventListener('loadeddata', handleLoad);
     }
   }, [videoUrl]);
 
@@ -27,6 +37,7 @@ const VideoThumbnail = ({ videoUrl }) => {
       <video 
         ref={videoRef} 
         src={videoUrl} 
+        crossOrigin="anonymous" 
         className="hidden"
         preload="metadata"
       />
